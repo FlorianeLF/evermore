@@ -46,6 +46,12 @@ def get_indexer():
 
     return my_indexer
 
+def get_pinata_credentials():
+    config = load_config()
+    api_key = config.get('pinata').get('api_key')
+    api_secret = config.get('pinata').get('api_secret')
+    return api_key, api_secret
+
 def get_account_credentials(account_id: int) -> (str, str, str):
     """
     Gets the credentials for the account with number: account_id
