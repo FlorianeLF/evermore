@@ -11,9 +11,6 @@ from algosdk.encoding import decode_address
 from src.smart_contracts import NFTMarketplaceASC1, nft_escrow
 
 
-from algosdk.encoding import encode_address
-
-
 class NFTMarketplace:
     def __init__(
             self, admin_pk, admin_address, nft_id, client
@@ -156,7 +153,6 @@ class NFTMarketplace:
         return tx_id
 
     def validate_buy(self, buyer_pk):
-        # 1. Application call txn
         app_args = [
             self.nft_marketplace_asc1.AppMethods.validate_buy
         ]
@@ -168,112 +164,8 @@ class NFTMarketplace:
                                                                          app_args=app_args,
                                                                          sign_transaction=True)
 
-        # # 2. Payment transaction: escrow -> seller
-        # asa_buy_payment_txn = PaymentTransactionRepository.payment(client=self.client,
-        #                                                            sender_address=self.escrow_address,
-        #                                                            receiver_address=nft_owner_address,
-        #                                                            amount=buy_price,
-        #                                                            sender_private_key=None,
-        #                                                            sign_transaction=False)
-        #
-        # # 3. Asset transfer transaction: escrow -> buyer
-        #
-        # asa_transfer_txn = ASATransactionRepository.asa_transfer(client=self.client,
-        #                                                          sender_address=self.escrow_address,
-        #                                                          receiver_address=buyer_address,
-        #                                                          amount=1,
-        #                                                          asa_id=self.nft_id,
-        #                                                          revocation_target=nft_owner_address,
-        #                                                          sender_private_key=None,
-        #                                                          sign_transaction=False)
-        #
-        # # Atomic transfer
-        # gid = algo_txn.calculate_group_id([app_call_txn,
-        #                                    asa_buy_payment_txn,
-        #                                    asa_transfer_txn])
-        #
-        # app_call_txn.group = gid
-        # asa_buy_payment_txn.group = gid
-        # asa_transfer_txn.group = gid
-        #
-        # app_call_txn_signed = app_call_txn.sign(buyer_pk)
-        #
-        # asa_buy_txn_signed = asa_buy_payment_txn.sign(self.escrow_address)
-        #
-        # asa_transfer_txn_logic_signature = algo_txn.LogicSig(self.escrow_bytes)
-        # asa_transfer_txn_signed = algo_txn.LogicSigTransaction(asa_transfer_txn, asa_transfer_txn_logic_signature)
-        #
-        # signed_group = [app_call_txn_signed,
-        #                 asa_buy_txn_signed,
-        #                 asa_transfer_txn_signed]
-        #
-        # tx_id = self.client.send_transactions(signed_group)
         tx_id = NetworkInteraction.submit_transaction(self.client, transaction=app_call_txn)
         return tx_id
-
-
-    # def validate_buy(self, nft_owner_address, owner_pk, buyer_address, buyer_pk, buy_price):
-    #     """
-    #     Only accessible by the buyer
-    #     """
-    #     app_args = [self.nft_marketplace_asc1.AppMethods.validate_buy]
-    #
-    #     app_call_txn = ApplicationTransactionRepository.call_application(
-    #         client=self.client,
-    #         caller_private_key=owner_pk,
-    #         app_id=self.app_id,
-    #         on_complete=algo_txn.OnComplete.NoOpOC,
-    #         app_args=app_args,
-    #         sign_transaction=True,
-    #     )
-    #
-    #     tx_id = NetworkInteraction.submit_transaction(self.client, transaction=app_call_txn)
-    #
-    #     app_call_txn = ApplicationTransactionRepository.call_application(client=self.client,
-    #                                                                      caller_private_key=nft_owner_address,
-    #                                                                      app_id=self.app_id,
-    #                                                                      on_complete=algo_txn.OnComplete.NoOpOC,
-    #                                                                      app_args=app_args,
-    #                                                                      sign_transaction=False)
-    #     # 1. Payment transaction: escrow -> seller
-    #     asa_buy_payment_txn = PaymentTransactionRepository.payment(client=self.client,
-    #                                                                sender_address=self.escrow_address,
-    #                                                                receiver_address=self.admin_address,
-    #                                                                amount=buy_price,
-    #                                                                sender_private_key=None,
-    #                                                                sign_transaction=False)
-    #     # 2. Asset transfer transaction: escrow -> buyer
-    #     asa_transfer_txn = ASATransactionRepository.asa_transfer(client=self.client,
-    #                                                              sender_address=self.escrow_address,
-    #                                                              receiver_address=buyer_address,
-    #                                                              amount=1,
-    #                                                              asa_id=self.nft_id,
-    #                                                              revocation_target=nft_owner_address,
-    #                                                              sender_private_key=None,
-    #                                                              sign_transaction=False)
-    #
-    #     # Atomic transfer
-    #     gid = algo_txn.calculate_group_id([app_call_txn,
-    #                                        asa_buy_payment_txn,
-    #                                        asa_transfer_txn])
-    #
-    #     app_call_txn.group = gid
-    #     asa_buy_payment_txn.group = gid
-    #     asa_transfer_txn.group = gid
-    #
-    #     app_call_txn_signed = app_call_txn.sign(buyer_pk)
-    #
-    #     asa_buy_txn_signed = asa_buy_payment_txn.sign(buyer_pk)
-    #
-    #     asa_transfer_txn_logic_signature = algo_txn.LogicSig(self.escrow_bytes)
-    #     asa_transfer_txn_signed = algo_txn.LogicSigTransaction(asa_transfer_txn, asa_transfer_txn_logic_signature)
-    #
-    #     signed_group = [app_call_txn_signed,
-    #                     asa_buy_txn_signed,
-    #                     asa_transfer_txn_signed]
-    #
-    #     tx_id = self.client.send_transactions(signed_group)
-    #     return tx_id
 
     def cancel_buy(self, caller_pk):
         """

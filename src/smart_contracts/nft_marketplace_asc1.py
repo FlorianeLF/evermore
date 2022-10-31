@@ -34,10 +34,11 @@ def executeAssetTransfer(asset_id: TealType.uint64, asset_amount: TealType.uint6
         InnerTxnBuilder.Submit()
     ])
 
-#TODO: rename NFTSCLifeCycle
-# TODO: rename asa into NFT
-# TODO: rename 'active' into 'app_ready'
+
 class NFTMarketplaceASC1(NFTMarketplaceInterface):
+    """
+    Smart Contract to control the full life cycle of an NFT on our Marketplace
+    """
     class Variables:
         escrow_address = Bytes("ESCROW_ADDRESS")
         asa_id = Bytes("ASA_ID")
@@ -46,8 +47,8 @@ class NFTMarketplaceASC1(NFTMarketplaceInterface):
         asa_buyer = Bytes("ASA_BUYER")
         app_state = Bytes("APP_STATE")
         app_admin = Bytes("APP_ADMIN")
-        creator_royalties = Bytes("CREATOR_ROYALTIES")
         asa_creator = Bytes("ASA_CREATOR")
+        creator_royalties = Bytes("CREATOR_ROYALTIES")
 
     class AppMethods:
         initialize_escrow = "initializeEscrow"
@@ -149,10 +150,7 @@ class NFTMarketplaceASC1(NFTMarketplaceInterface):
 
     def open_sell(self, sell_price):
         """
-        Single application call with 2 arguments.
-        - method_name
-        - price
-        :return:
+        Function for the owner to list its product/NFT in the marketplace
         """
         valid_number_of_transactions = Global.group_size() == Int(1)
         app_is_active = Or(App.globalGet(self.Variables.app_state) == self.AppState.active,
@@ -176,14 +174,10 @@ class NFTMarketplaceASC1(NFTMarketplaceInterface):
 
     def buy(self, buyer_address):
         """
-        Single application call with 2 arguments.
-        - method_name
-        - buyer_address
-        :return:
+        Function to buy the NFT
         """
         app_sell_is_open = App.globalGet(self.Variables.app_state) == self.AppState.selling_open
         no_current_buy = App.globalGet(self.Variables.asa_buyer) == Global.zero_address()
-        #TODO: check amount in the wallet
         can_buy = And( app_sell_is_open,
                        no_current_buy)
 
@@ -197,19 +191,16 @@ class NFTMarketplaceASC1(NFTMarketplaceInterface):
 
     def validate_buy(self):
         """
-        Atomic transfer of 3 transactions:
-        1. Application call.
-        2. Payment from buyer to seller.
-        3. Asset transfer from escrow to buyer.
+        Function for the buyer has received the product at home and can now agree to transfer the money
+        to the original owner and become the NFT owner
         :return:
         """
-        #valid_caller = Txn.sender() == App.globalGet(self.Variables.asa_buyer)
         buying_in_progress = App.globalGet(self.Variables.app_state) == self.AppState.buying_in_progress
         can_validate_buying = buying_in_progress
         # The transaction is validated
         royalties = Div(Btoi(self.Variables.creator_royalties) * Btoi(self.Variables.asa_price), Int(100))
         seller_money =  Btoi(self.Variables.asa_price) - royalties
-        #seller_money = Minus(self.Variables.asa_price, royalties)
+
         # 1. send the money from smart contract to the original NFT owner
         If(can_validate_buying).Then(
             inner_payment_txn(
@@ -245,7 +236,10 @@ class NFTMarketplaceASC1(NFTMarketplaceInterface):
         return If(can_validate_buying).Then(update_state).Else(Return(Int(0)))
 
     def cancel_buy(self):
-        # TODO: the seller can cancel the sell, NFT comes back and money given back to buyer
+        """
+        Function for the owner to cancel a buying process, and get its NFT back.
+        The buyer gets its money back as well
+        """
         valid_number_of_transactions = Global.group_size() == Int(3)
         valid_caller = Txn.sender() == App.globalGet(self.Variables.asa_owner)
         buying_in_progress = App.globalGet(self.Variables.app_state) == self.AppState.buying_in_progress
@@ -265,8 +259,7 @@ class NFTMarketplaceASC1(NFTMarketplaceInterface):
 
     def close_sell(self):
         """
-        Single application call.
-        :return:
+        The owner don't want to have its product listing on the marketplace anymore
         """
         valid_number_of_transactions = Global.group_size() == Int(1)
         valid_caller = Txn.sender() == App.globalGet(self.Variables.asa_owner)
